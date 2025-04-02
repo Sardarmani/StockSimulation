@@ -1,39 +1,30 @@
-# Core Django
+# Core
 Django==5.1.6
-django-allauth==0.54.0
-django-bootstrap5==24.3
-django-cors-headers==4.7.0
-django-extensions==3.2.1
 djangorestframework==3.15.2
+django-cors-headers==4.7.0
+gunicorn==21.2.0
 
 # Database
 psycopg2-binary==2.9.6
 
-# Utilities
-python-dotenv==1.0.1
-requests==2.32.3
-
-# Data processing
-numpy==1.26.4  # Critical fixed version for matplotlib compatibility
+# Data Processing
+numpy==1.26.4
 pandas==2.2.3
-yfinance==0.2.51
 
-# Visualization
-matplotlib==3.8.3  # Stable version that works with numpy 1.26
-mplfinance==0.12.10b0
+# Visualization (lighter alternatives)
 plotly==5.18.0
 bokeh==2.4.3
-seaborn==0.12.2
 
-# AI/ML
-groq==0.6.0
-crawl4ai==0.4.246
-
-# PDF processing
-PyMuPDF==1.23.21
-
-# Web/Async
+# Essentials
+python-dotenv==1.0.1
+requests==2.32.3
+yfinance==0.2.51
 aiohttp==3.8.4
 beautifulsoup4==4.12.3
-
-gunicorn
+PyMuPDF==1.23.21
+groq==0.6.0
+mplfinance==0.12.10b0
+Crawl4AI==0.4.246
+seaborn==0.12.2
+matplotlib==3.7.0
+matplotlib-inline==0.1.6
