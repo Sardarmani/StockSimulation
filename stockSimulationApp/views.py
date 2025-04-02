@@ -106,11 +106,11 @@ async def fetch_and_display_stock_prices(request, ticker):
 #     return JsonResponse({"Data": stock_data})
 
 # Get historical data for a ticker
-def get_historical_data(ticker):
-    ticker = ticker.split(":")[0]  # Remove ":NASDAQ"
-    stock = yf.Ticker(ticker)
-    hist = stock.history(period="1y")  # Get 1 year of historical data
-    return hist
+# def get_historical_data(ticker):
+#     ticker = ticker.split(":")[0]  # Remove ":NASDAQ"
+#     stock = yf.Ticker(ticker)
+#     hist = stock.history(period="1y")  # Get 1 year of historical data
+#     return hist
 
 def get_stock_data(ticker):
     """Fetch stock data for the given ticker from the database efficiently."""

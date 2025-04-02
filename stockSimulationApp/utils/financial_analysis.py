@@ -16,7 +16,7 @@ class FinancialAnalyzer:
     }
 
     def __init__(self):
-        groq_api_key = os.getenv("GROQ_API_KEY")
+        groq_api_key = os.getenv("GROQ_API_KEY") 
         self.client = Groq(api_key=groq_api_key) if groq_api_key else None
 
     def extract_text_from_pdf(self, pdf_file):
