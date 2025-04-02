@@ -35,3 +35,5 @@ PyMuPDF==1.23.21
 # Web/Async
 aiohttp==3.8.4
 beautifulsoup4==4.12.3
+
+gunicorn
