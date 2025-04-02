@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Financial Statement Analysis</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+      
+        .container {
+            max-width: 800px;
+            background: #fff;
+            padding: 30px;
+            margin-top: 50px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        h2 {
+            color: #333;
+            text-align: center;
+            font-weight: bold;
+        }
+        hr {
+            border-top: 2px solid #007bff;
+        }
+        pre {
+            background: #f1f1f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">📈 Stock Trading</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'portfolio' %}">📊 My Portfolio</a>
+                    </li>
+                    
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'financial_analysis' %}">📈 Financial Analysis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">🚪 Logout</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">🔑 Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'signup' %}">📝 Sign Up</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+<div class="container">
+    
+    <h2>Financial Statement Analysis</h2>
+
+    <!-- File Upload Form -->
+    <form method="post" enctype="multipart/form-data" class="mt-4">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Select Financial Statement:</label>
+            {{ upload_form.statement_type }}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Upload File:</label>
+            {{ upload_form.pdf_file }}
+        </div>
+
+        <button type="submit" name="upload_file" class="btn btn-primary w-100">Upload and Analyze</button>
+    </form>
+
+    {% if analysis_result %}
+        <hr>
+        <h4>Analysis Result</h4>
+        <pre>{{ analysis_result }}</pre>
+
+        <!-- Question Form -->
+        <h4>Ask a Financial Question</h4>
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Your Question:</label>
+                {{ question_form.user_question }}
+            </div>
+            <button type="submit" name="ask_question" class="btn btn-success w-100">Get Answer</button>
+        </form>
+    {% endif %}
+
+    {% if user_question_result %}
+        <hr>
+        <h4>Answer</h4>
+        <pre>{{ user_question_result }}</pre>
+    {% endif %}
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

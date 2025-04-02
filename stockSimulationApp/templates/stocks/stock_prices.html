@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .stock-up { color: green; font-weight: bold; }
+        .stock-down { color: red; font-weight: bold; }
+        .content { padding: 20px; }
+        .chart-container { margin-top: 20px; }
+        .metric-label { font-weight: bold; color: #6c757d; }
+        .price-change { font-weight: bold; }
+        
+        /* Announcement Item Styling */
+        .announcement-item {
+            animation: fadeIn 0.5s ease-in-out;
+            margin-bottom: 15px;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .announcement-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Fade-in Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Badge Styling */
+        .badge {
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+
+        .bg-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        /* Scroll to Top Button */
+        #scrollToTopBtn {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 99;
+            border: none;
+            outline: none;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            padding: 10px 15px;
+            border-radius: 50%;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+        }
+
+        #scrollToTopBtn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Table Styling */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+        }
+
+        .table th, .table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .table th {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+
+        .table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Price ticker animation */
+        @keyframes flashGreen {
+            0% { background-color: transparent; }
+            50% { background-color: rgba(40, 167, 69, 0.3); }
+            100% { background-color: transparent; }
+        }
+
+        @keyframes flashRed {
+            0% { background-color: transparent; }
+            50% { background-color: rgba(220, 53, 69, 0.3); }
+            100% { background-color: transparent; }
+        }
+
+        .price-update {
+            transition: all 0.3s ease;
+        }
+
+        .price-update.up {
+            animation: flashGreen 1s;
+        }
+
+        .price-update.down {
+            animation: flashRed 1s;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">📈 Stock Trading</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'portfolio' %}">📊 Portfolio</a></li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'financial_analysis' %}">📈 Analysis</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">🚪 Logout</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">🔑 Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'signup' %}">📝 Sign Up</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Stock Selection -->
+    <div class="container mt-4">
+        <h2 class="text-center">📊 Stock Market Dashboard</h2>
+        <div class="card p-4 shadow-sm">
+            <label for="stockDropdown" class="form-label">Select a Stock:</label>
+            <select id="stockDropdown" class="form-select" onchange="onStockChange()">
+                {% for stock in stocks %}
+                    <option value="{{ stock.ticker }}" {% if stock.ticker == selected_ticker %}selected{% endif %}>
+                        {{ stock.ticker }} - {{ stock.company_name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Market Summary Banner -->
+    <div class="container mt-3">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Market Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row" id="marketIndicators">
+                    <!-- Market indicators will be loaded here -->
+                    <div class="col text-center">
+                        <p class="mb-1">Loading market data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs for Organization -->
+    <div class="container mt-4">
+        <ul class="nav nav-tabs" id="stockTabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#overview">Overview</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#financials">Financials</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#company">Company Profile</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#announcements">Announcements</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#payouts">Dividends</a>
+            </li>
+            {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#trading">Trading</a>
+                </li>
+            {% endif %}
+        </ul>
+
+        <div class="tab-content">
+            <!-- Overview Tab -->
+            <div class="tab-pane fade show active p-4" id="overview">
+                <h3>📈 Stock Performance</h3>
+                <div class="btn-group mb-3" role="group">
+                    <button class="btn btn-outline-primary" onclick="updateChart('1D')">1D</button>
+                    <button class="btn btn-outline-primary" onclick="updateChart('5D')">5D</button>
+                    <button class="btn btn-outline-primary" onclick="updateChart('1M')">1M</button>
+                    <button class="btn btn-outline-primary" onclick="updateChart('1Y')">1Y</button>
+                    <button class="btn btn-outline-primary" onclick="updateChart('5Y')">5Y</button>
+                    <button class="btn btn-outline-primary" onclick="updateChart('All')">All</button>
+                </div>
+                
+                <div class="chart-container">
+                    <!-- <img id="stockChart" class="img-fluid" src="" alt="Stock Chart"> -->
+                    {% if chart_image %}
+                    <img src="data:image/png;base64,{{ chart_image }}" alt="Stock Chart">
+                {% else %}
+                    <p>No chart available.</p>
+                {% endif %}
+                </div>
+            </div>
+
+            <!-- Financials Tab -->
+            <div class="tab-pane fade p-4" id="financials">
+                <h3>📊 Financial Metrics</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><span class="metric-label">Live Price:</span> 
+                            <span id="stock-price" class="price-update">-</span>
+                            <span id="price-change" class="price-change"></span>
+                        </p>
+                        <p><span class="metric-label">P/E Ratio:</span> <span id="pe-ratio">-</span></p>
+                        <p><span class="metric-label">Market Cap:</span> <span id="market-cap">-</span></p>
+                        <p><span class="metric-label">Volume:</span> <span id="volume">-</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><span class="metric-label">52 Week Low:</span> <span id="52-week-low">-</span></p>
+                        <p><span class="metric-label">52 Week High:</span> <span id="52-week-high">-</span></p>
+                        <p><span class="metric-label">EPS:</span> <span id="eps">-</span></p>
+                        <p><span class="metric-label">Dividend Yield:</span> <span id="dividend-yield">-</span></p>
+                        <p><span class="metric-label">Sector:</span> <span id="sector">-</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Company Profile Tab -->
+            <div class="tab-pane fade p-4" id="company">
+                <h3>🏢 Company Profile</h3>
+                <p><span class="metric-label">Business:</span> <span id="BusinessDesc">-</span></p>
+                <p><span class="metric-label">CEO:</span> <span id="ceo">-</span></p>
+                <p><span class="metric-label">Chairperson:</span> <span id="chairperson">-</span></p>
+                <p><span class="metric-label">Address:</span> <span id="address">-</span></p>
+                <p><span class="metric-label">Website:</span> <span id="website"><a href="#" target="_blank">-</a></span></p>
+                <p><span class="metric-label">Registrar:</span> <span id="registrar">-</span></p>
+                <p><span class="metric-label">Auditor:</span> <span id="auditor">-</span></p>
+                <p><span class="metric-label">Fiscal Year End:</span> <span id="fiscal-year-end">-</span></p>
+            </div>
+
+            <!-- Announcements Tab -->
+            <div class="tab-pane fade p-4" id="announcements">
+                <h3>📢 Announcements</h3>
+                <input type="text" id="searchAnnouncements" placeholder="Search announcements..." class="form-control mb-3">
+                <div class="row" id="announcementsContainer">
+                    <!-- Announcements will be loaded here -->
+                </div>
+                <button id="scrollToTopBtn" title="Go to top">↑</button>
+            </div>
+
+            <!-- Dividends Tab -->
+            <div class="tab-pane fade p-4" id="payouts">
+                <h3>💰 Dividend History</h3>
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Period</th>
+                                        <th>Dividend</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payoutsTableBody">
+                                    <!-- Filled by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                Dividend Yield Trend
+                            </div>
+                            <div class="card-body">
+                                <canvas id="payoutsChart" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Tab -->
+            {% if user.is_authenticated %}
+                <div class="tab-pane fade p-4" id="trading">
+                    <h3>💰 Trade Stocks</h3>
+                    <form method="post" action="{% url 'buy_stock' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="ticker" id="current-ticker" value="{{ selected_ticker }}">
+                        <input type="hidden" name="price" id="current-price">
+                        <div class="mb-3">
+                            <label for="quantity">Quantity:</label>
+                            <input type="number" name="quantity" min="1" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">Buy</button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+
+function renderDividendsChart(dividends) {
+    const ctx = document.getElementById('payoutsChart').getContext('2d');
+    
+    // Destroy existing chart if it exists
+    if (window.dividendChart) {
+        window.dividendChart.destroy();
+    }
+    
+    // Prepare data for chart
+    const chartData = {
+        labels: dividends.map(d => d.date),
+        datasets: [{
+            label: 'Dividend Yield (%)',
+            data: dividends.map(d => d.numeric_value),
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true
+        }]
+    };
+    
+    window.dividendChart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(context) {
+                            const dividend = dividends[context.dataIndex];
+                            return [
+                                `Period: ${dividend.financial_period}`,
+                                `Book Closure: ${dividend.book_closure}`
+                            ];
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Dividend Yield (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Payment Date'
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderDividendsTable(dividends) {
+    const tableBody = document.getElementById('payoutsTableBody');
+    tableBody.innerHTML = '';
+    
+    if (dividends.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="3" class="text-muted">No dividend history available</td></tr>';
+        return;
+    }
+    
+    dividends.forEach(dividend => {
+        const row = document.createElement('tr');
+        
+        // Color coding based on dividend value
+        const valueClass = dividend.numeric_value > 5 ? 'text-success' : 
+                          dividend.numeric_value > 2 ? 'text-primary' : 'text-muted';
+        
+        row.innerHTML = `
+            <td>${dividend.date}</td>
+            <td>${dividend.financial_period}</td>
+            <td class="${valueClass}">
+                <strong>${dividend.dividend}</strong>
+                ${dividend.book_closure ? `<br><small>${dividend.book_closure}</small>` : ''}
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+
+        // Global variables to track previous values
+        let previousPrice = null;
+        let previousMarketData = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMarketSummary();
+            onStockChange();
+            setInterval(loadMarketSummary, 60000); // Update market summary every minute
+            setInterval(updateStockData, 10000); // Update stock data every 10 seconds
+        });
+
+        // Load market summary data
+        function loadMarketSummary() {
+            fetch('/api/market-summary/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        renderMarketIndicators(data.data.market_indices);
+                        previousMarketData = data.data;
+                
+                    }
+                })
+                .catch(error => console.error('Error loading market summary:', error));
+        }
+
+        // Render market indicators
+        function renderMarketIndicators(indices) {
+            const container = document.getElementById('marketIndicators');
+            container.innerHTML = '';
+            
+            indices.forEach(index => {
+                const changeClass = parseFloat(index.change) >= 0 ? 'stock-up' : 'stock-down';
+                const changeIcon = parseFloat(index.change) >= 0 ? '▲' : '▼';
+                
+                container.innerHTML += `
+                    <div class="col-md-4 mb-2">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">${index.index}</h6>
+                                <p class="card-text mb-1">Value: Rs.${index.value}</p>
+                                <p class="card-text mb-1 ${changeClass}">
+                                    ${changeIcon} ${index.change} (${index.percentage_change})
+                                </p>
+                                <p class="card-text">Volume: ${index.volume}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Handle stock change
+        function onStockChange() {
+            const selectedStock = document.getElementById('stockDropdown').value;
+            document.getElementById('current-ticker').value = selectedStock;
+            updateStockData();
+            updateChart('All');
+        }
+
+        // Update stock data
+        function updateStockData() {
+            const selectedStock = document.getElementById('stockDropdown').value;
+            
+            fetch(`/api/company/${selectedStock}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        renderStockData(data.data);
+                        updatePriceChangeIndicator(data.data.price_data.price);
+                        console.log(data)
+                        if (data.data.dividends && data.data.dividends.length > 0) {
+                        renderDividendsTable(data.data.dividends);
+                        renderDividendsChart(data.data.dividends);
+                }
+                    }
+                })
+                .catch(error => console.error('Error updating stock data:', error));
+        }
+
+        // Render stock data
+        function renderStockData(data) {
+            // Basic info
+            document.getElementById('BusinessDesc').textContent = data.basic_info.business_desc || '-';
+            document.getElementById('ceo').textContent = data.basic_info.ceo || '-';
+            document.getElementById('chairperson').textContent = data.basic_info.chairperson || '-';
+            document.getElementById('address').textContent = data.basic_info.address || '-';
+            
+            const websiteLink = document.getElementById('website').querySelector('a');
+            websiteLink.href = data.basic_info.website || '#';
+            websiteLink.textContent = data.basic_info.website || '-';
+            
+            document.getElementById('registrar').textContent = data.basic_info.registrar || '-';
+            document.getElementById('auditor').textContent = data.basic_info.auditor || '-';
+            document.getElementById('fiscal-year-end').textContent = data.basic_info.fiscal_year_end || '-';
+
+            // Price data
+            const priceData = data.price_data;
+            document.getElementById('stock-price').textContent = `Rs.${priceData.price}`;
+            document.getElementById('current-price').value = priceData.price;
+            document.getElementById('pe-ratio').textContent = priceData.pe_ratio || '-';
+            document.getElementById('market-cap').textContent = `Rs.${priceData.market_cap}` || '-';
+            document.getElementById('volume').textContent = priceData.volume || '-';
+            document.getElementById('52-week-low').textContent = `Rs.${priceData['52_week_range'].low}` || '-';
+            document.getElementById('52-week-high').textContent = `Rs.${priceData['52_week_range'].high}` || '-';
+            document.getElementById('eps').textContent = priceData.eps || '-';
+            document.getElementById('dividend-yield').textContent = priceData.dividend_yield || '-';
+            document.getElementById('sector').textContent = data.basic_info.sector || '-';
+
+            // Announcements
+            renderAnnouncements(data.announcements);
+            
+            // Dividends
+            renderDividends(data.dividends);
+        }
+
+        // Update price change indicator
+        function updatePriceChangeIndicator(currentPrice) {
+            const priceElement = document.getElementById('stock-price');
+            const changeElement = document.getElementById('price-change');
+            
+            if (previousPrice !== null) {
+                const change = parseFloat(currentPrice) - parseFloat(previousPrice);
+                const percentChange = (change / parseFloat(previousPrice)) * 100;
+                
+                if (change > 0) {
+                    priceElement.classList.add('up');
+                    changeElement.className = 'price-change stock-up';
+                    changeElement.innerHTML = `▲ +${change.toFixed(2)} (${percentChange.toFixed(2)}%)`;
+                } else if (change < 0) {
+                    priceElement.classList.add('down');
+                    changeElement.className = 'price-change stock-down';
+                    changeElement.innerHTML = `▼ ${change.toFixed(2)} (${percentChange.toFixed(2)}%)`;
+                }
+                
+                // Remove animation classes after animation completes
+                setTimeout(() => {
+                    priceElement.classList.remove('up', 'down');
+                }, 1000);
+            }
+            
+            previousPrice = currentPrice;
+        }
+
+        // Render announcements
+        function renderAnnouncements(announcements) {
+            const container = document.getElementById('announcementsContainer');
+            container.innerHTML = '';
+            
+            if (!announcements || announcements.length === 0) {
+                container.innerHTML = '<p class="text-muted">No announcements available.</p>';
+                return;
+            }
+            
+            // Sort by date (newest first)
+            announcements.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            const currentDate = new Date();
+            const sevenDaysAgo = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            announcements.forEach(announcement => {
+                const announcementDate = new Date(announcement.date);
+                const isNew = announcementDate > sevenDaysAgo;
+                
+                const announcementElement = document.createElement('div');
+                announcementElement.className = 'col-md-12 announcement-item';
+                announcementElement.innerHTML = `
+                    <p>
+                        ${isNew ? '<span class="badge bg-success">New</span>' : ''}
+                        <i class="fas fa-bell"></i>
+                        <strong>${announcement.date}</strong>: ${announcement.title}
+                    </p>
+                    ${announcement.document_url ? 
+                        `<a href="${announcement.document_url}" target="_blank">
+                            <i class="fas fa-file-pdf"></i> View Document
+                        </a>` : ''
+                    }
+                `;
+                container.appendChild(announcementElement);
+            });
+        }
+
+        // Render dividends
+        function renderDividends(dividends) {
+            const tableBody = document.getElementById('payoutsTableBody');
+            tableBody.innerHTML = '';
+            
+            if (!dividends || dividends.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="2" class="text-muted">No dividend data available.</td></tr>';
+                return;
+            }
+            
+            // Sort by date (newest first)
+            dividends.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            dividends.forEach(dividend => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${dividend.date}</td>
+                    <td>${dividend.financial_period} - ${dividend.dividend}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Prepare data for chart
+            const chartData = dividends.map(d => ({
+                date: d.date,
+                value: parseFloat(d.dividend.replace('%', ''))
+            }));
+            
+            renderDividendsChart(chartData);
+        }
+
+        // Render dividends chart
+        function renderDividendsChart(data) {
+            const ctx = document.getElementById('payoutsChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (window.dividendsChart) {
+                window.dividendsChart.destroy();
+            }
+            
+            window.dividendsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: 'Dividend Yield (%)',
+                        data: data.map(d => d.value),
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Dividend Yield (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update chart
+        function updateChart(timeframe) {
+            const selectedStock = document.getElementById('stockDropdown').value;
+            fetch(`/stocks/${selectedStock}/chart/?timeframe=${timeframe}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error(data.error);
+                        return;
+                    }
+                    document.getElementById('stockChart').src = `data:image/png;base64,${data.image}`;
+                })
+                .catch(error => console.error('Error updating chart:', error));
+        }
+
+        // Scroll to top button
+        window.addEventListener('scroll', function() {
+            const scrollBtn = document.getElementById('scrollToTopBtn');
+            if (window.pageYOffset > 300) {
+                scrollBtn.style.display = 'block';
+            } else {
+                scrollBtn.style.display = 'none';
+            }
+        });
+
+        document.getElementById('scrollToTopBtn').addEventListener('click', function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // Search announcements
+        document.getElementById('searchAnnouncements').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const announcements = document.querySelectorAll('.announcement-item');
+            
+            announcements.forEach(announcement => {
+                const text = announcement.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    announcement.style.display = '';
+                } else {
+                    announcement.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
