@@ -1,22 +1,37 @@
+# Core Django
 Django==5.1.6
 django-allauth==0.54.0
 django-bootstrap5==24.3
 django-cors-headers==4.7.0
 django-extensions==3.2.1
 djangorestframework==3.15.2
+
+# Database
 psycopg2-binary==2.9.6
+
+# Utilities
 python-dotenv==1.0.1
-yfinance==0.2.51
-plotly==5.18.0
-pandas==2.2.3
 requests==2.32.3
+
+# Data processing
+numpy==1.26.4  # Critical fixed version for matplotlib compatibility
+pandas==2.2.3
+yfinance==0.2.51
+
+# Visualization
+matplotlib==3.8.3  # Stable version that works with numpy 1.26
+mplfinance==0.12.10b0
+plotly==5.18.0
+bokeh==2.4.3
+seaborn==0.12.2
+
+# AI/ML
 groq==0.6.0
 crawl4ai==0.4.246
-PyMuPDF==1.23.21  # Replaces fitz
-mplfinance==0.12.10b0  # Added for chart generation
-bokeh==2.4.3
+
+# PDF processing
+PyMuPDF==1.23.21
+
+# Web/Async
 aiohttp==3.8.4
 beautifulsoup4==4.12.3
-matplotlib==3.7.0  # Required by mplfinance
-seaborn==0.12.2  # Used in your chart generation
-gunicorn
