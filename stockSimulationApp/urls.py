@@ -2,7 +2,10 @@ from . import views
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import PortfolioViewSet, TransactionViewSet, StockDataViewSet
+from .views import PortfolioViewSet, TransactionViewSet, StockDataViewSet 
+
+from .api.views.watchlist import  WatchlistViewSet
+
 
 from .api.views.market import CompanyDataAPIView, MarketSummaryAPIView
 from .api.views.getHistoricalImage import StockChartAPIView 
@@ -11,7 +14,7 @@ router = DefaultRouter()
 router.register(r'api/portfolio', PortfolioViewSet)
 router.register(r'api/transactions', TransactionViewSet)
 router.register(r'api/stocks', StockDataViewSet)
-
+router.register(r'api/watchlist', WatchlistViewSet, basename='watchlist')  
 
 
 urlpatterns = [
@@ -28,6 +31,7 @@ urlpatterns = [
     path('signup/', views.signup_view, name='signup'),
     path('api/login/', views.LoginAPIView.as_view(), name='api_login'),
     path('api/portfolio' ,PortfolioViewSet.as_view({'get': 'list', 'post': 'create'})),
+    path('api/watchlist/' ,WatchlistViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('api/', include(router.urls)),  # API endpoints are now prefixed with "api/"
     
     path('api/company/<str:ticker>/', CompanyDataAPIView.as_view(), name='company-data'),
@@ -36,5 +40,6 @@ urlpatterns = [
     path('api/financial-analysis/upload/', FinancialUploadAPIView.as_view(), name='financial_analysis_upload'),
     path('api/financial-analysis/question/', FinancialQuestionAPIView.as_view(), name='financial_analysis_question'),
     path('api/financial-analysis/status/', FinancialAnalysisStatusAPIView.as_view(), name='financial_analysis_status'),
+
 ]
 

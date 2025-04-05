@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Portfolio, Transaction, StockData
+from .models import Portfolio, Transaction, StockData , Watchlist
 
 class PortfolioSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,3 +19,9 @@ class StockDataSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+class WatchlistSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Watchlist
+        fields = ['id', 'ticker', 'company_name', 'created_at']
+        read_only_fields = ['id', 'created_at']

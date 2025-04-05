@@ -28,3 +28,12 @@ class StockData(models.Model):
     low = models.FloatField()
     volume = models.CharField(max_length=50)  # Store as string if large numbers
     change_percent = models.FloatField()
+
+class Watchlist(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    ticker = models.CharField(max_length=20)
+    company_name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'ticker')  # Prevent duplicate entries for same user and ticker
